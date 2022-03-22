@@ -41,10 +41,12 @@ class K_mean:
             self._labelcount[label] += 1
             r_d=sparse_to_dense(sparse_r_d=d.split("<fff>")[2],vocab_size=vocab_size)
             self._data.append(member(r_d=r_d,doc_id=doc_id,label=label))
-    def random_init(self):
-        self._cen= np.random.rand(self._num_cluster,self._vocabsize)
-    def compute_smilarity(self,member,centroid):
-        return np.sqrt(np.sum((member-centroid)**2))
+    def _random_init(self,seed_value):
+        for cluster in self._cluster:
+            cluster._centroid = np.random.rand(self._vocabsize)
+            self._cen.append(cluster._centroid)
+    def compute_similarity(self,member,centroid):
+        return np.sqrt(np.sum((member._r_d-centroid)**2))
     def select_cluster_for(self,member):
         best_cluster=None
         max_similar=-2
@@ -55,8 +57,8 @@ class K_mean:
                 max_similar=similar
         best_cluster.add_member(member)
         return max_similar
-    def update_centroid(self,cluster):
-        member_r_ds=[member._r_d for member in cluster._members]
+    def update_centroid_of(self,cluster):
+        member_r_ds=np.array([member._r_d for member in cluster._members]).reshape(-1,self._vocabsize)
         average_r_d=np.mean(member_r_ds,axis=0)
         sqrt_sum=np.sqrt(np.sum(average_r_d**2))
         new_centroid=np.array([a/sqrt_sum for a in average_r_d])
@@ -76,7 +78,7 @@ class K_mean:
             self._iteration +=1
             if self._stopping_condition(criterion,threshold):
                 break
-    def stopping_condition(self,criterion,threshold):
+    def _stopping_condition(self,criterion,threshold):
         criteria=['centroid','similarity','max_iters']
         assert criterion in criteria
         if criterion=='max_iters':
